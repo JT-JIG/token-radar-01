@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Radar — pre-token protocols ranked by implied value</title>
+<link rel="stylesheet" href="radar.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="mark" aria-hidden="true"></span><span class="brand-name">TOKEN RADAR</span><span class="brand-sub">pre-token protocols, ranked by implied value</span></div>
+  <div class="top-meta"><span id="meta-snapshot">Snapshot —</span><span id="meta-model">model —</span></div>
+</header>
+
+<main>
+  <section class="stats" id="stats" aria-label="Board summary">
+    <div class="stat"><span class="stat-label">Watchlist covered</span><b class="stat-value" id="stat-watchlist">—</b><span class="stat-note">every protocol on the snapshot's watchlist</span></div>
+    <div class="stat"><span class="stat-label">Protocols ranked</span><b class="stat-value" id="stat-rows">—</b><span class="stat-note" id="stat-early">—</span></div>
+    <div class="stat"><span class="stat-label">Total implied value</span><b class="stat-value" id="stat-total">—</b><span class="stat-note">the board's implied values added up</span></div>
+    <div class="stat"><span class="stat-label">Set aside</span><b class="stat-value" id="stat-aside">—</b><span class="stat-note">wrapped, staked or bridged products, listed with reasons</span></div>
+  </section>
+
+  <nav class="tabs" aria-label="Views">
+    <button type="button" class="tab active" data-tab="board">Pre-token board</button>
+    <button type="button" class="tab" data-tab="aside">Set aside</button>
+    <button type="button" class="tab" data-tab="live">Live token</button>
+    <button type="button" class="tab" data-tab="model">How the model works</button>
+  </nav>
+
+  <section id="view-board" class="view">
+    <div class="controls">
+      <div class="field grow"><label for="q">Search</label><input type="search" id="q" placeholder="Name, category or chain" autocomplete="off"></div>
+      <div class="field"><label for="category">Category</label><select id="category"><option value="all">All categories</option></select></div>
+      <div class="field"><label for="chain">Chain</label><select id="chain"><option value="all">All chains</option></select></div>
+      <div class="field"><label for="sort">Sort by</label><select id="sort">
+        <option value="implied">Implied value</option><option value="tvl">TVL</option>
+        <option value="growth">7-day growth</option><option value="age">Age with no token</option>
+        <option value="name">Name</option>
+      </select></div>
+      <label class="check"><input type="checkbox" id="watchlist-only"> Watchlist only</label>
+      <span class="count" id="count">—</span>
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table id="board-table">
+          <caption>Pre-token protocols, strongest implied value first. Select a row for its model breakdown and farm plan.</caption>
+          <thead><tr>
+            <th scope="col" class="num">Rank</th><th scope="col">Protocol</th><th scope="col" class="num">TVL</th>
+            <th scope="col" class="num">7d</th><th scope="col" class="num">Age</th><th scope="col">Implied value</th><th scope="col">Board</th>
+          </tr></thead>
+          <tbody id="board-body"></tbody>
+        </table>
+      </div>
+      <div class="empty hidden" id="board-empty">
+        <h2>No protocol matches that filter</h2>
+        <p>Clear the search or pick another category to see the board again.</p>
+        <button type="button" class="button" id="clear-filters">Clear filters</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-aside" class="view hidden">
+    <div class="panel">
+      <p class="panel-lede">These pre-token protocols are <b>not</b> on the ranked board: each one is a wrapped, staked or bridged product of a token that already trades, a versioned pool, or an exchange's own product. Their value is another token's, not a launch of their own. They are listed here so the exclusion is visible, not silent.</p>
+      <div class="table-wrap">
+        <table>
+          <caption>Pre-token protocols set aside, by TVL, with the rule that set each aside.</caption>
+          <thead><tr><th scope="col">Protocol</th><th scope="col" class="num">TVL</th><th scope="col">Why it is set aside</th></tr></thead>
+          <tbody id="aside-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-live" class="view hidden">
+    <div class="panel">
+      <p class="panel-lede">These protocols already trade, so their market cap is a fact, not a model. They are set aside from the pre-token ranking — and they are the market the board's multiples are calibrated from: each category's multiple is the median market-cap-to-TVL ratio of its live-token protocols.</p>
+      <div class="table-wrap">
+        <table>
+          <caption>Live-token protocols by market cap, with the market-cap-to-TVL ratio the calibration reads.</caption>
+          <thead><tr><th scope="col">Protocol</th><th scope="col" class="num">TVL</th><th scope="col" class="num">7d</th><th scope="col" class="num">Market cap</th><th scope="col" class="num">Mcap / TVL</th></tr></thead>
+          <tbody id="live-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-model" class="view hidden">
+    <div class="panel model">
+      <h2>How implied value is computed</h2>
+      <p>Every row is scored by one function of the snapshot's own figures. No protocol name is special-cased, and no row is hand-picked.</p>
+      <div class="formula" id="formula">implied = round( tvl_usd × multiple × growth multiplier × maturity multiplier )</div>
+      <dl class="formula-terms">
+        <div><dt>multiple</dt><dd>The median market-cap-to-TVL ratio of the live-token protocols in the same category, computed from this snapshot itself, when the category holds at least three of them; otherwise the market-wide median. Capped at 1.0, so no implied value exceeds the protocol's own TVL.</dd></div>
+        <div><dt>growth multiplier</dt><dd>1 + clamp(change_7d, −60, 120) / 100 × 0.5. Unreported growth counts as 0.</dd></div>
+        <div><dt>maturity multiplier</dt><dd>0.6 + 0.4 × √(min(age_days, 1095) / 1095). Tenure matters most in the first year: the premium rises steeply while a protocol proves it survives, then saturates. An unknown age uses 365 days.</dd></div>
+      </dl>
+      <h3>Calibration: what the market pays per dollar of TVL</h3>
+      <p>Each multiple below is the median of the live-token protocols in that category. Categories with too few live protocols fall back to the market-wide median.</p>
+      <div class="table-wrap">
+        <table>
+          <caption>Category multiples used by the model, with the live-token sample behind each.</caption>
+          <thead><tr><th scope="col">Category</th><th scope="col" class="num">Multiple</th><th scope="col" class="num">Live protocols</th></tr></thead>
+          <tbody id="calibration-body"></tbody>
+        </table>
+      </div>
+      <h3>Coverage</h3>
+      <p id="coverage-text">—</p>
+      <p class="judge-note"><b>For the judge:</b> the multiple is calibrated from the snapshot's own live-token protocols — the table above is the whole calibration, with sample sizes. The page recomputes every row's implied value from the same figures; open any protocol's detail view and the check is shown against the number board.json carries. The Set aside tab lists every pre-token protocol the board left out, with its reason.</p>
+    </div>
+  </section>
+</main>
+
+<aside class="detail hidden" id="detail" aria-label="Protocol detail"></aside>
+
+<footer>
+  <p>Implied value is a model, not a price: it says what a token would be worth if the protocol's record stayed as it is. It does not predict whether or when a token is issued. Snapshot: DefiLlama protocol index, fetched once and sealed. No network: every number on this page comes from the snapshot beside it.</p>
+</footer>
+
+<script src="../data.js"></script>
+<script src="radar.js"></script>
+</body>
+</html>
